@@ -19,7 +19,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuProject">
@@ -43,9 +43,16 @@
     </property>
     <addaction name="actionEdit_stylesheet"/>
    </widget>
+   <widget class="QMenu" name="menuDebugger">
+    <property name="title">
+     <string>Debugger</string>
+    </property>
+    <addaction name="actionConnect_to_target"/>
+   </widget>
    <addaction name="menuProject"/>
    <addaction name="menuScript"/>
    <addaction name="menuOptions"/>
+   <addaction name="menuDebugger"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
@@ -76,6 +83,11 @@
   <action name="actionNew_project">
    <property name="text">
     <string>New project...</string>
+   </property>
+  </action>
+  <action name="actionConnect_to_target">
+   <property name="text">
+    <string>Connect to target...</string>
    </property>
   </action>
  </widget>

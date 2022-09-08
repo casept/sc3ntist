@@ -4,7 +4,6 @@
 #include "textdump.h"
 #include "project.h"
 #include "parser/SCXFile.h"
-#include <vector>
 #include "disassemblymodel.h"
 #include "disassemblyview.h"
 #include <QDockWidget>
@@ -14,6 +13,9 @@
 #include "memoryview.h"
 #include "worklistdialog.h"
 #include "newprojectdialog.h"
+#include "debuggerconnectiondialog.h"
+
+#include <vector>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
@@ -170,4 +172,8 @@ void MainWindow::on_actionImport_worklist_triggered() {
 
 void MainWindow::on_actionNew_project_triggered() {
   NewProjectDialog(this).exec();
+}
+
+void MainWindow::on_actionConnect_to_target_triggered() {
+  DebuggerConnectionDialog(this).exec();
 }
