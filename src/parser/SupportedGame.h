@@ -31,4 +31,12 @@ class RNEGame : public SupportedGame {
   const std::vector<std::string> &charset() const override;
 };
 
+class SGHDGame : public SupportedGame {
+ public:
+  SC3BaseDisassembler *createDisassembler(SCXFile &file) const override;
+  int id() const override;
+  const std::string name() const override;
+  const std::vector<std::string> &charset() const override;
+};
+
 extern const std::vector<SupportedGame *> SupportedGames;
