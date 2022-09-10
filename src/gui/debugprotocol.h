@@ -2,9 +2,13 @@
 
 #include <cstdint>
 #include <variant>
+#include <string>
+#include <map>
 
 #include <bitsery/bitsery.h>
 #include <bitsery/brief_syntax/variant.h>
+#include <bitsery/brief_syntax/map.h>
+#include <bitsery/brief_syntax/string.h>
 #include <bitsery/brief_syntax.h>
 
 /*
@@ -23,13 +27,15 @@ This is because there are multiple targets planned (impacto and the official
 engine), but only one debugger.
 */
 
-namespace DbgProto {
+namespace Dbg::Proto {
 
 using ThreadID = uint8_t;
 
 /** Debugger -> Target **/
 namespace Cmd {
 enum class Type : uint8_t {
+  /// Get a list of threads and their loaded scripts.
+  GetThreads,
   /// Get the instruction pointer.
   GetIP,
   /// Get a 32-bit thread-local variable.
@@ -40,9 +46,30 @@ enum class Type : uint8_t {
   GetGlobalFlag,
   /// Break execution.
   BreakNow,
-  /// Continue execution.
+  /// Continue execution. Target will not send a reply.
   Continue,
-  // TODO: Breakpoints, watchpoints
+  /// Get mapping of script buffers to their scripts.
+  GetBuf2ScriptMapping,
+  /// Get mapping of script buffers to their threads.
+  GetBuf2ThreadMapping,
+  /// Set a breakpoint. Target will reply when hit.
+  SetBreakpoint,
+  /// Set a watchpoint on a local variable. Target will reply when hit.
+  SetLocalVarWatchpoint,
+  /// Set a watchpoint on a global variable. Target will reply when hit.
+  SetGlobalVarWatchpoint,
+  /// Set a watchpoint on a global flag. Target will reply when hit.
+  SetGlobalFlagWatchpoint,
+  /// Unset a breakpoint.
+  UnsetBreakpoint,
+};
+
+struct GetThreads {
+  // Empty is not serializable
+  template <typename S>
+  void serialize(S& s) {
+    s();
+  };
 };
 
 struct GetIP {
@@ -101,10 +128,30 @@ struct Continue {
   };
 };
 
+struct SetBreakpoint {
+  ThreadID tid;
+  uint32_t addr;
+
+  template <typename S>
+  void serialize(S& s) {
+    s(tid, addr);
+  };
+};
+
+struct UnsetBreakpoint {
+  ThreadID tid;
+  uint32_t addr;
+
+  template <typename S>
+  void serialize(S& s) {
+    s(tid, addr);
+  };
+};
+
 struct Cmd {
   Type type;
-  std::variant<GetIP, GetLocalVar, GetGlobalVar, GetGlobalFlag, BreakNow,
-               Continue>
+  std::variant<GetThreads, GetIP, GetLocalVar, GetGlobalVar, GetGlobalFlag,
+               BreakNow, Continue, SetBreakpoint, UnsetBreakpoint>
       cmd;
 
   template <typename S>
@@ -118,22 +165,91 @@ struct Cmd {
 
 namespace Reply {
 
+struct GetThreads {
+  // TID -> Name of script in it's script buffer
+  std::map<std::string, std::vector<ThreadID>> threads;
+
+  template <typename S>
+  void serialize(S& s) {
+    s(threads);
+  };
+};
+
 struct GetIP {
+  ThreadID tid;
   uint32_t ip;
 
   template <typename S>
   void serialize(S& s) {
-    s(ip);
+    s(tid, ip);
+  };
+};
+
+struct GetLocalVar {
+  ThreadID tid;
+  uint32_t whichVar;
+  uint32_t value;
+
+  template <typename S>
+  void serialize(S& s) {
+    s(tid, whichVar, value);
+  };
+};
+
+struct GetGlobalVar {
+  uint32_t whichVar;
+  uint32_t value;
+
+  template <typename S>
+  void serialize(S& s) {
+    s(whichVar, value);
+  };
+};
+;
+
+struct GetGlobalFlag {
+  uint32_t whichFlag;
+  bool value;
+
+  template <typename S>
+  void serialize(S& s) {
+    s(whichFlag, value);
+  };
+};
+
+struct BreakNow {
+  ThreadID tid;
+
+  template <typename S>
+  void serialize(S& s) {
+    s(tid);
+  };
+};
+
+struct BreakpointHit {
+  ThreadID tid;
+  uint32_t addr;
+
+  template <typename S>
+  void serialize(S& s) {
+    s(tid, addr);
   };
 };
 
 enum class Type : uint8_t {
+  GetThreads,
   GetIP,
+  GetLocalVar,
+  GetGlobalVar,
+  GetGlobalFlag,
+  BreakpointHit
 };
 
 struct Reply {
   Type type;
-  std::variant<GetIP> reply;
+  std::variant<GetThreads, GetIP, GetLocalVar, GetGlobalVar, GetGlobalFlag,
+               BreakpointHit>
+      reply;
 
   template <typename S>
   void serialize(S& s) {
@@ -142,4 +258,4 @@ struct Reply {
 };
 
 }  // namespace Reply
-}  // namespace DbgProto
+}  // namespace Dbg::Proto

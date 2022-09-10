@@ -35,6 +35,7 @@ find_package(
 add_executable(
   sc3ntist
   "src/gui/analysis.cpp"
+  "src/gui/debugger.cpp"
   "src/gui/debuggerapplication.cpp"
   "src/gui/debugprotocol_debugger.cpp"
   "src/gui/debuggerconnectiondialog.cpp"

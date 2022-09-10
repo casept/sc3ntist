@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "gui/debugger.h"
 #include "ui_mainwindow.h"
 #include "debuggerapplication.h"
 #include "textdump.h"
@@ -15,6 +16,7 @@
 #include "newprojectdialog.h"
 #include "debuggerconnectiondialog.h"
 
+#include <exception>
 #include <vector>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -175,5 +177,23 @@ void MainWindow::on_actionNew_project_triggered() {
 }
 
 void MainWindow::on_actionConnect_to_target_triggered() {
-  DebuggerConnectionDialog(this).exec();
+  auto connDialog = DebuggerConnectionDialog(this);
+  if (connDialog.exec() == QDialog::Accepted) {
+    try {
+      _dbg.emplace(connDialog.getHost().toStdString().data(),
+                   connDialog.getPort());
+    } catch (const std::exception &e) {
+      QMessageBox::critical(
+          this, "Error", QString("Failed to connect to target: ") + e.what());
+      return;
+    }
+  }
+  ui->actionConnect_to_target->setEnabled(false);
+  ui->actionDisconnect_from_target->setEnabled(true);
+}
+
+void MainWindow::on_actionDisconnect_from_target_triggered() {
+  _dbg.reset();
+  ui->actionConnect_to_target->setEnabled(true);
+  ui->actionDisconnect_from_target->setEnabled(false);
 }

@@ -1,7 +1,10 @@
 #pragma once
 
+#include "debugger.h"
+
 #include <QMainWindow>
 #include <QListWidget>
+#include <optional>
 
 namespace Ui {
 class MainWindow;
@@ -22,6 +25,10 @@ class MainWindow : public QMainWindow {
   QListWidget *_fileList;
   QListWidget *_labelList;
   MemoryView *_memoryView;
+  // Debugger has to be owned by main window because it has to be accessible by
+  // multiple views and has to survive until disconnect which is triggered in
+  // the main window.
+  std::optional<Dbg::Debugger> _dbg;
 
  private slots:
   void onProjectOpened();
@@ -35,4 +42,5 @@ class MainWindow : public QMainWindow {
   void on_actionImport_worklist_triggered();
   void on_actionNew_project_triggered();
   void on_actionConnect_to_target_triggered();
+  void on_actionDisconnect_from_target_triggered();
 };

@@ -19,7 +19,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>23</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuProject">
@@ -48,6 +48,7 @@
      <string>Debugger</string>
     </property>
     <addaction name="actionConnect_to_target"/>
+    <addaction name="actionDisconnect_from_target"/>
    </widget>
    <addaction name="menuProject"/>
    <addaction name="menuScript"/>
@@ -88,6 +89,14 @@
   <action name="actionConnect_to_target">
    <property name="text">
     <string>Connect to target...</string>
+   </property>
+  </action>
+  <action name="actionDisconnect_from_target">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Disconnect from target</string>
    </property>
   </action>
  </widget>
