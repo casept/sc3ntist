@@ -1,5 +1,5 @@
 #include "debuggerconnectiondialog.h"
-#include "debuggerapplication.h"
+
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -7,15 +7,16 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QSpinBox>
+#include <QDialogButtonBox>
 
 #include <stdexcept>
+#include <cstdint>
 
 DebuggerConnectionDialog::DebuggerConnectionDialog(QWidget *parent)
     : QDialog(parent) {
   _buttons =
       new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-  connect(_buttons, &QDialogButtonBox::accepted, this,
-          &DebuggerConnectionDialog::okClicked);
+  connect(_buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
   connect(_buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
   QVBoxLayout *layout = new QVBoxLayout(this);
@@ -32,6 +33,7 @@ DebuggerConnectionDialog::DebuggerConnectionDialog(QWidget *parent)
   _portBox = new QSpinBox(this);
   _portBox->setMinimum(1);
   _portBox->setMaximum(65535);
+  _portBox->setValue(1337);
 
   portLayout->addWidget(portLabel);
   portLayout->addWidget(_portBox);
@@ -44,7 +46,8 @@ DebuggerConnectionDialog::DebuggerConnectionDialog(QWidget *parent)
   resize(500, height());
 }
 
-void DebuggerConnectionDialog::okClicked() {
-  // TODO: Validate inputs
-  accept();
+QString DebuggerConnectionDialog::getHost() { return _hostEdit->text(); }
+
+uint16_t DebuggerConnectionDialog::getPort() {
+  return static_cast<uint16_t>(_portBox->value());
 }

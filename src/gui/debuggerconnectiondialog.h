@@ -4,15 +4,17 @@
 #include <QDialogButtonBox>
 #include <QLineEdit>
 #include <QSpinBox>
+#include <QString>
+
+#include <cstdint>
 
 class DebuggerConnectionDialog : public QDialog {
   Q_OBJECT
 
  public:
   explicit DebuggerConnectionDialog(QWidget *parent = 0);
-
- private slots:
-  void okClicked();
+  QString getHost();
+  uint16_t getPort();
 
  private:
   QDialogButtonBox *_buttons;
