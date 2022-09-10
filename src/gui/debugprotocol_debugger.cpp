@@ -7,6 +7,16 @@
 #include <bitsery/brief_syntax/vector.h>
 #include <QtEndian>
 
+// Part of the ugly timeout hack
+#if defined(WIN32) || defined(_WIN32) || \
+    defined(__WIN32) && !defined(__CYGWIN__)
+#include <winsock.h>
+#else
+extern "C" {
+#include <sys/socket.h>
+}
+#endif
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -17,12 +27,20 @@ using Buf = std::vector<uint8_t>;
 using OutputAdapter = bitsery::OutputBufferAdapter<Buf>;
 using InputAdapter = bitsery::InputBufferAdapter<Buf>;
 
-namespace DbgProto::Debugger {
+namespace Dbg::Proto::Impl {
 Connection::Connection(const char* addr, uint16_t port)
     : ctx({}), sock(ctx), recvBuf({}) {
   tcp::resolver resolv(ctx);
   auto endpoints = resolv.resolve(addr, std::to_string(port));
   sock = tcp::socket(ctx);
+  // This assumes an asio implementation detail by dealing with raw underlying
+  // OS sockets, because apparently it's acceptable for "mature" C++ libraries
+  // to lack basic features.
+  const int timeoutMs = 1000;
+  ::setsockopt(sock.native_handle(), SOL_SOCKET, SO_RCVTIMEO,
+               (const char*)&timeoutMs, sizeof timeoutMs);
+  ::setsockopt(sock.native_handle(), SOL_SOCKET, SO_SNDTIMEO,
+               (const char*)&timeoutMs, sizeof timeoutMs);
   asio::connect(sock, endpoints);
   // Reduce latency
   asio::socket_base::send_buffer_size bufsize(32);
@@ -64,4 +82,4 @@ std::optional<Reply::Reply> Connection::RecvReply() {
   }
   return {};
 }
-}  // namespace DbgProto::Debugger
+}  // namespace Dbg::Proto::Impl

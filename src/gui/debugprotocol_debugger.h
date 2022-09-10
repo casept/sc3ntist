@@ -11,7 +11,7 @@
 The actual implementation of the debugger side of the debug protocol.
 */
 
-namespace DbgProto::Debugger {
+namespace Dbg::Proto::Impl {
 class Connection {
  public:
   Connection() = delete;
@@ -26,4 +26,4 @@ class Connection {
   asio::ip::tcp::socket sock;
   std::vector<uint8_t> recvBuf;
 };
-}  // namespace DbgProto::Debugger
+}  // namespace Dbg::Proto::Impl
