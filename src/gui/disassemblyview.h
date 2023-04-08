@@ -1,14 +1,21 @@
 #pragma once
+
 #include <QTreeView>
 #include <QHeaderView>
 #include <QAbstractItemModel>
-#include "parser/SCXTypes.h"
 #include <QTimer>
+#include <memory>
+#include <optional>
+
+#include "gui/debugger.h"
+#include "parser/SCXTypes.h"
 
 class DisassemblyView : public QTreeView {
   Q_OBJECT
  public:
-  explicit DisassemblyView(QWidget *parent = 0);
+  explicit DisassemblyView(
+      QWidget *parent = 0,
+      std::optional<std::shared_ptr<Dbg::Debugger>> dbg = {});
   ~DisassemblyView(){};
 
   void setModel(QAbstractItemModel *model) override;
@@ -28,6 +35,7 @@ class DisassemblyView : public QTreeView {
   void onCommentKeyPress();
   void onNameKeyPress();
   void onXrefKeyPress();
+  void onBreakpointKeyPress();
 
   void onModelReset();
   void adjustHeader(int oldCount, int newCount);

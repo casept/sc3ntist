@@ -32,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent)
   disassemblyDock->setFeatures(disassemblyDock->features() &
                                ~QDockWidget::DockWidgetClosable);
   disassemblyDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-  _disasmView = new DisassemblyView(disassemblyDock);
+  _disasmView = new DisassemblyView(disassemblyDock, _dbg);
   disassemblyDock->setWidget(_disasmView);
   addDockWidget(Qt::RightDockWidgetArea, disassemblyDock);
 
@@ -180,8 +180,9 @@ void MainWindow::on_actionConnect_to_target_triggered() {
   auto connDialog = DebuggerConnectionDialog(this);
   if (connDialog.exec() == QDialog::Accepted) {
     try {
-      _dbg.emplace(connDialog.getHost().toStdString().data(),
-                   connDialog.getPort());
+      auto dbg = std::make_shared<Dbg::Debugger>(
+          connDialog.getHost().toStdString().data(), connDialog.getPort());
+      _dbg.emplace(dbg);
     } catch (const std::exception &e) {
       QMessageBox::critical(
           this, "Error", QString("Failed to connect to target: ") + e.what());

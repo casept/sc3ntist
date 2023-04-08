@@ -42,6 +42,9 @@ class Project : public QObject {
   QString getVarComment(VariableRefType type, int var);
   void setVarComment(const QString& comment, VariableRefType type, int var);
 
+  bool getBreakpoint(int fileId, SCXOffset address);
+  void setBreakpoint(int fileId, SCXOffset address, bool enabled);
+
   QString getString(int fileId, int stringId);
   int getStringCount(int fileId);
 
@@ -63,6 +66,7 @@ class Project : public QObject {
   void labelNameChanged(int fileId, int labelId, const QString& name);
   void varNameChanged(VariableRefType type, int var, const QString& name);
   void varCommentChanged(VariableRefType type, int var, const QString& comment);
+  void breakpointChanged(int fileId, SCXOffset address, bool enabled);
   void allVarsChanged();
 
  private:
@@ -122,4 +126,6 @@ class Project : public QObject {
   QSqlQuery _getGameIdQuery;
   QSqlQuery _setGameIdQuery;
   QSqlQuery _getVarByNameQuery;
+  QSqlQuery _getBreakpointQuery;
+  QSqlQuery _setBreakpointQuery;
 };

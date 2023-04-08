@@ -299,6 +299,28 @@ void Project::setVarComment(const QString& comment, VariableRefType type,
   }
 }
 
+bool Project::getBreakpoint(int fileId, SCXOffset address) {
+  _getBreakpointQuery.addBindValue(fileId);
+  _getBreakpointQuery.addBindValue(address);
+  _getBreakpointQuery.exec();
+  _getBreakpointQuery.next();
+
+  bool result = false;
+  if (_getBreakpointQuery.isValid()) {
+    result = _getBreakpointQuery.value(0).toBool();
+  }
+  return result;
+}
+
+void Project::setBreakpoint(int fileId, SCXOffset address, bool enabled) {
+  _setBreakpointQuery.addBindValue(fileId);
+  _setBreakpointQuery.addBindValue(address);
+  _setBreakpointQuery.addBindValue(enabled);
+  _setBreakpointQuery.exec();
+
+  emit breakpointChanged(fileId, address, enabled);
+}
+
 QString Project::getString(int fileId, int stringId) {
   _getStringQuery.addBindValue(fileId);
   _getStringQuery.addBindValue(stringId);
@@ -626,6 +648,14 @@ void Project::createDatabase(const QString& path) {
       "key TEXT PRIMARY KEY,"
       "value BLOB NOT NULL"
       ")");
+  q.exec(
+      "CREATE TABLE breakpoints("
+      "fileId INTEGER NOT NULL,"
+      "address INTEGER NOT NULL,"
+      "enabled INTEGER NOT NULL,"
+      "UNIQUE (fileId, address),"
+      "PRIMARY KEY (fileId, address)"
+      ")");
   prepareStmts();
 }
 
@@ -699,4 +729,10 @@ void Project::prepareStmts() {
   _getVarByNameQuery = QSqlQuery(_db);
   _getVarByNameQuery.prepare(
       "SELECT variable FROM variables WHERE variableType = ? AND name = ?");
+  _getBreakpointQuery = QSqlQuery(_db);
+  _getBreakpointQuery.prepare(
+      "SELECT enabled FROM breakpoints WHERE fileId = ? AND address = ?");
+  _setBreakpointQuery = QSqlQuery(_db);
+  _setBreakpointQuery.prepare(
+      "REPLACE INTO breakpoints (fileId, address, enabled) VALUES (?, ?, ?)");
 }

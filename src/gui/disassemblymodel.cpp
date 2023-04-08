@@ -1,16 +1,22 @@
 #include "disassemblymodel.h"
+
+#include <algorithm>
+#include <memory>
+#include <optional>
+#include <sstream>
+
 #include "parser/SCXFile.h"
 #include "parser/SC3CodeBlock.h"
-#include <sstream>
 #include "textdump.h"
-#include <algorithm>
 #include "debuggerapplication.h"
 #include "project.h"
 #include "analysis.h"
-#include "viewhelper.h"
+#include "debugger.h"
 
-DisassemblyModel::DisassemblyModel(const SCXFile *script, QObject *parent)
-    : QAbstractItemModel(parent), _script(script) {
+DisassemblyModel::DisassemblyModel(
+    const SCXFile *script, QObject *parent,
+    std::optional<std::shared_ptr<Dbg::Debugger>> dbg)
+    : QAbstractItemModel(parent), _script(script), _dbg(dbg) {
   reload();
 
   connect(dApp->project(), &Project::commentChanged, this,
@@ -21,6 +27,8 @@ DisassemblyModel::DisassemblyModel(const SCXFile *script, QObject *parent)
           &DisassemblyModel::onVarNameChanged);
   connect(dApp->project(), &Project::allVarsChanged, this,
           &DisassemblyModel::onAllVarsChanged);
+  connect(dApp->project(), &Project::breakpointChanged, this,
+          &DisassemblyModel::onBreakpointChanged);
 }
 
 void DisassemblyModel::reload() {
@@ -153,6 +161,10 @@ QVariant DisassemblyModel::headerData(int section, Qt::Orientation orientation,
       return "Code";
     case ColumnType::Text:
       return "Text";
+    case ColumnType::Breakpoint:
+      return "Breakpoint";
+    case ColumnType::NumColumns:
+      return "NumColumns";
   }
   return QVariant();
 }
@@ -168,6 +180,13 @@ QVariant DisassemblyModel::data(const QModelIndex &index, int role) const {
   switch ((ColumnType)index.column()) {
     case ColumnType::Address:
       return QVariant(row->address);
+    case ColumnType::Breakpoint: {
+      if (row->type != RowType::Instruction) return QVariant();
+      const SC3CodeBlock *label = labelForIndex(index);
+      const SC3Instruction *inst = label->instructions()[row->id].get();
+      return QVariant(
+          dApp->project()->getBreakpoint(_script->getId(), inst->position()));
+    }
     case ColumnType::Code: {
       const SC3CodeBlock *label = labelForIndex(index);
       switch (row->type) {
@@ -185,7 +204,9 @@ QVariant DisassemblyModel::data(const QModelIndex &index, int role) const {
           return QVariant("; " + dApp->project()->getComment(_script->getId(),
                                                              row->address));
         }
-        default: { return QVariant(); }
+        default: {
+          return QVariant();
+        }
       }
     }
     case ColumnType::Text: {
@@ -194,16 +215,18 @@ QVariant DisassemblyModel::data(const QModelIndex &index, int role) const {
       const SC3Instruction *inst = label->instructions()[row->id].get();
       return QVariant(firstStringInInstruction(inst));
     }
-    default: { return QVariant(); }
+    default: {
+      return QVariant();
+    }
   }
 }
 
 Qt::ItemFlags DisassemblyModel::flags(const QModelIndex &index) const {
-  if (!index.isValid()) return 0;
+  if (!index.isValid()) return {};
   Qt::ItemFlags result = QAbstractItemModel::flags(index);
   const DisassemblyRow *row =
       static_cast<DisassemblyRow *>(index.internalPointer());
-  if (row == nullptr) return 0;
+  if (row == nullptr) return {};
   if (row->children.size() == 0) result |= Qt::ItemFlag::ItemNeverHasChildren;
   return result;
 }
@@ -293,4 +316,30 @@ void DisassemblyModel::onVarNameChanged(VariableRefType type, int var,
 void DisassemblyModel::onAllVarsChanged() {
   beginResetModel();
   endResetModel();
+}
+
+void DisassemblyModel::onBreakpointChanged(int fileId, SCXOffset address,
+                                           bool enabled) {
+  if (fileId != _script->getId()) return;
+  if (address < 0 || address >= _script->getLength()) return;
+
+  int labelId, instId;
+  std::tie(labelId, instId) = instIdAtAddress(_script, address);
+  if (labelId < 0 || instId < 0) return;
+
+  if (!_dbg.has_value()) {
+    qWarning() << "No debuggee attached";
+    return;
+  }
+
+  DisassemblyRow *instructionRow = &_labelRows[labelId].children.data()[instId];
+  if (enabled) {
+    _dbg.value()->setBreakpoint(_script->getName().c_str(), address);
+  } else {
+    _dbg.value()->unsetBreakpoint(_script->getName().c_str(), address);
+  }
+
+  QModelIndex index =
+      createIndex(instId, (int)ColumnType::Breakpoint, (void *)instructionRow);
+  emit dataChanged(index, index);
 }

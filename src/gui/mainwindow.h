@@ -5,6 +5,7 @@
 #include <QMainWindow>
 #include <QListWidget>
 #include <optional>
+#include <memory>
 
 namespace Ui {
 class MainWindow;
@@ -28,7 +29,7 @@ class MainWindow : public QMainWindow {
   // Debugger has to be owned by main window because it has to be accessible by
   // multiple views and has to survive until disconnect which is triggered in
   // the main window.
-  std::optional<Dbg::Debugger> _dbg;
+  std::optional<std::shared_ptr<Dbg::Debugger>> _dbg;
 
  private slots:
   void onProjectOpened();

@@ -1,11 +1,16 @@
 #pragma once
+
 #include <QAbstractItemModel>
 #include <QModelIndex>
 #include <QVariant>
-#include "parser/SCXTypes.h"
-#include "enums.h"
 #include <vector>
 #include <utility>
+#include <optional>
+#include <memory>
+
+#include "parser/SCXTypes.h"
+#include "debugger.h"
+#include "enums.h"
 
 class SCXFile;
 class SC3CodeBlock;
@@ -19,7 +24,9 @@ class DisassemblyModel : public QAbstractItemModel {
   enum class ColumnType { Breakpoint, Address, Code, Text, NumColumns };
   enum class RowType { Label, Instruction, Comment, Blank };
 
-  explicit DisassemblyModel(const SCXFile* script, QObject* parent = 0);
+  explicit DisassemblyModel(
+      const SCXFile* script, QObject* parent = 0,
+      std::optional<std::shared_ptr<Dbg::Debugger>> dbg = {});
   ~DisassemblyModel() {}
 
   const SCXFile* script() const { return _script; }
@@ -46,10 +53,12 @@ class DisassemblyModel : public QAbstractItemModel {
   void onLabelNameChanged(int fileId, int labelId, const QString& name);
   void onVarNameChanged(VariableRefType type, int var, const QString& name);
   void onAllVarsChanged();
+  void onBreakpointChanged(int fileId, SCXOffset address, bool enabled);
 
  private:
   const SCXFile* _script;
   std::vector<DisassemblyRow> _labelRows;
+  std::optional<std::shared_ptr<Dbg::Debugger>> _dbg;
 
   void reload();
 

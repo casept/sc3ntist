@@ -17,7 +17,13 @@ void DisassemblyItemDelegate::paint(QPainter* painter,
   switch ((DisassemblyModel::ColumnType)index.column()) {
     case DisassemblyModel::ColumnType::Breakpoint: {
       // TODO parameterize
-      painter->fillRect(option.rect, QColor("#101923"));
+      bool enabled = index.data().toBool();
+      if (enabled) {
+        // TODO: Draw icon pixmap
+        painter->fillRect(option.rect, QColor("#FF0040"));
+      } else {
+        painter->fillRect(option.rect, QColor("#101923"));
+      }
       break;
     }
     default: {
@@ -49,14 +55,18 @@ QString DisassemblyItemDelegate::richTextFor(const QModelIndex& index) const {
           return "<div class='instruction'>" + index.data().toString() +
                  "</div>";
         }
-        default: { break; }
+        default: {
+          break;
+        }
       }
     }
     case DisassemblyModel::ColumnType::Text: {
       return "<div class='string'>" + index.data().toString().toHtmlEscaped() +
              "</div>";
     }
-    default: { break; }
+    default: {
+      break;
+    }
   }
   return QString();
 }

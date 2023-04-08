@@ -8,7 +8,9 @@
 #include <QShortcut>
 #include "xrefdialog.h"
 
-DisassemblyView::DisassemblyView(QWidget* parent) : QTreeView(parent) {
+DisassemblyView::DisassemblyView(
+    QWidget* parent, std::optional<std::shared_ptr<Dbg::Debugger>> dbg)
+    : QTreeView(parent) {
   connect(dApp, &DebuggerApplication::projectOpened, this,
           &DisassemblyView::onProjectOpened);
   connect(dApp, &DebuggerApplication::projectClosed, this,
@@ -40,6 +42,10 @@ DisassemblyView::DisassemblyView(QWidget* parent) : QTreeView(parent) {
   connect(xrefShortcut, &QShortcut::activated, this,
           &DisassemblyView::onXrefKeyPress);
   xrefShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+  QShortcut* breakpointShortcut = new QShortcut(Qt::Key_B, this);
+  connect(breakpointShortcut, &QShortcut::activated, this,
+          &DisassemblyView::onBreakpointKeyPress);
+  breakpointShortcut->setContext(Qt::WidgetWithChildrenShortcut);
 
   _resizeTimer = new QTimer(this);
   _resizeTimer->setSingleShot(true);
@@ -183,4 +189,17 @@ void DisassemblyView::onXrefKeyPress() {
 
     XrefDialog(disModel->script()->getId(), address, false, this).exec();
   }
+}
+
+void DisassemblyView::onBreakpointKeyPress() {
+  const DisassemblyModel* disModel = qobject_cast<DisassemblyModel*>(model());
+  if (disModel == nullptr) return;
+
+  SCXOffset address = disModel->addressForIndex(currentIndex());
+  if (address < 0) return;
+
+  bool enabled =
+      dApp->project()->getBreakpoint(disModel->script()->getId(), address);
+  dApp->project()->setBreakpoint(disModel->script()->getId(), address,
+                                 !enabled);
 }
