@@ -74,6 +74,10 @@ MainWindow::MainWindow(QWidget *parent)
           &MainWindow::onProjectOpened);
   connect(dApp, &DebuggerApplication::projectClosed, this,
           &MainWindow::onProjectClosed);
+
+  // Debugger may only be opened once project is opened
+  ui->actionConnect_to_target->setEnabled(false);
+  ui->actionDisconnect_from_target->setEnabled(false);
 }
 
 MainWindow::~MainWindow() { delete ui; }
@@ -83,6 +87,7 @@ void MainWindow::onProjectOpened() {
           &MainWindow::onFileSwitched);
   connect(dApp->project(), &Project::labelNameChanged, this,
           &MainWindow::onLabelNameChanged);
+  ui->actionConnect_to_target->setEnabled(true);
 
   const auto &files = dApp->project()->files();
   if (files.size() == 0) return;
@@ -100,6 +105,11 @@ void MainWindow::onProjectOpened() {
 void MainWindow::onProjectClosed() {
   _fileList->clear();
   _labelList->clear();
+  ui->actionConnect_to_target->setEnabled(false);
+  // Disconnect current debug session, if any
+  if (_dbg.has_value()) {
+    _dbg.reset();
+  }
 }
 
 void MainWindow::onFileSwitched(int previousId) {
