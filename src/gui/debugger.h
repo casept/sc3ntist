@@ -17,8 +17,13 @@
 #include <map>
 #include <functional>
 #include <mutex>
+#include <QObject>
+#include <QLoggingCategory>
 
 namespace Dbg {
+
+Q_DECLARE_LOGGING_CATEGORY(debugger)
+
 struct Breakpoint {
   std::string scriptBuffer;
   uint32_t address;
@@ -26,9 +31,9 @@ struct Breakpoint {
   bool operator==(const Breakpoint& other) const;
 };
 
-using BreakpointHandler = std::function<void(const Breakpoint&)>;
+class Debugger : public QObject {
+  Q_OBJECT
 
-class Debugger {
  public:
   /// Create a new instance bound to the given target.
   Debugger(const char* host, uint16_t port);
@@ -36,14 +41,16 @@ class Debugger {
   /// Update debugger state based on any new replies from the target.
   void Update();
 
-  /// Run the given function if new breakpoints have been hit since last
-  /// invocation.
-  /// Should probably be called after an `Update()`.
-  void runBreakpointHandler(BreakpointHandler handler);
   /// Set a breakpoint for any threads running the given script buffer.
   void setBreakpoint(const char* scriptbufName, uint32_t addr);
   /// Unset a breakpoint for any threads running the given script buffer.
   void unsetBreakpoint(const char* scriptbufName, uint32_t addr);
+  /// Tell the debugee to continue execution after a breakpoint.
+  void continueExecution(Breakpoint bp);
+
+ public:
+ signals:
+  void breakpointHit(Breakpoint);
 
  private:
   /// Because multiple widgets may access something at the same time

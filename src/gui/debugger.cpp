@@ -8,6 +8,9 @@
 #include <chrono>
 
 #include <QDebug>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(debugger, "sc3ntist.debugger")
 
 using namespace Dbg::Proto;
 namespace Dbg {
@@ -121,12 +124,14 @@ void Debugger::Update() {
   }
 }
 
-void Debugger::runBreakpointHandler(BreakpointHandler handler) {
+void Debugger::continueExecution(Breakpoint bp) {
   std::lock_guard<std::mutex> lck(mtx);
 
-  for (const Breakpoint& bp : newlyHit) {
-    handler(bp);
-  }
-  newlyHit.clear();
+  const auto tid = scriptBuf2Tids.at(bp.scriptBuffer).front();
+  const Cmd::Cmd cmd = {
+      .type = Cmd::Type::Continue,
+      .cmd = Cmd::Continue{.tid = tid},
+  };
+  conn.SendCmd(cmd);
 }
 }  // namespace Dbg

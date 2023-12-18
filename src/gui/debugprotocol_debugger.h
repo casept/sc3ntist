@@ -6,10 +6,13 @@
 
 #include <cstdint>
 #include <optional>
+#include <QLoggingCategory>
 
 /*
 The actual implementation of the debugger side of the debug protocol.
 */
+
+Q_DECLARE_LOGGING_CATEGORY(debugProtocol)
 
 namespace Dbg::Proto::Impl {
 class Connection {
