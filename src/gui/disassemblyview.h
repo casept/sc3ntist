@@ -36,6 +36,7 @@ class DisassemblyView : public QTreeView {
   void onNameKeyPress();
   void onXrefKeyPress();
   void onBreakpointKeyPress();
+  void onContinueKeyPress();
 
   void onModelReset();
   void adjustHeader(int oldCount, int newCount);

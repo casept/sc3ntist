@@ -1,6 +1,7 @@
 #include "disassemblymodel.h"
 #include "disassemblyview.h"
 #include "disassemblyitemdelegate.h"
+#include "gui/debugger.h"
 #include "project.h"
 #include "debuggerapplication.h"
 #include <QAction>
@@ -46,6 +47,10 @@ DisassemblyView::DisassemblyView(
   connect(breakpointShortcut, &QShortcut::activated, this,
           &DisassemblyView::onBreakpointKeyPress);
   breakpointShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+  QShortcut* continueShortcut = new QShortcut(Qt::Key_C, this);
+  connect(continueShortcut, &QShortcut::activated, this,
+          &DisassemblyView::onContinueKeyPress);
+  continueShortcut->setContext(Qt::WidgetWithChildrenShortcut);
 
   _resizeTimer = new QTimer(this);
   _resizeTimer->setSingleShot(true);
@@ -202,4 +207,23 @@ void DisassemblyView::onBreakpointKeyPress() {
       dApp->project()->getBreakpoint(disModel->script()->getId(), address);
   dApp->project()->setBreakpoint(disModel->script()->getId(), address,
                                  !enabled);
+}
+
+void DisassemblyView::onContinueKeyPress() {
+  const DisassemblyModel* disModel = qobject_cast<DisassemblyModel*>(model());
+  if (disModel == nullptr) return;
+
+  SCXOffset address = disModel->addressForIndex(currentIndex());
+  if (address < 0) return;
+
+  // TODO: Also check if breakpoint was actually hit
+  bool breakpoint_exists =
+      dApp->project()->getBreakpoint(disModel->script()->getId(), address);
+  if (breakpoint_exists) {
+    // TODO: Does this really belong in a view?
+    // dbg->continueExecution(
+    //    Dbg::Breakpoint{.address = (uint32_t)address,
+    //                    .scriptBuffer = disModel->script()->getName()});
+    qWarning() << "Continue not implemented yet";
+  }
 }
