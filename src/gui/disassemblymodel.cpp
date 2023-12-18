@@ -29,6 +29,10 @@ DisassemblyModel::DisassemblyModel(
           &DisassemblyModel::onAllVarsChanged);
   connect(dApp->project(), &Project::breakpointChanged, this,
           &DisassemblyModel::onBreakpointChanged);
+  if (_dbg.has_value()) {
+    connect(_dbg.value().get(), &Dbg::Debugger::breakpointHit, this,
+            &DisassemblyModel::onBreakpointHit);
+  }
 }
 
 void DisassemblyModel::reload() {
@@ -339,6 +343,23 @@ void DisassemblyModel::onBreakpointChanged(int fileId, SCXOffset address,
     _dbg.value()->unsetBreakpoint(_script->getName().c_str(), address);
   }
 
+  QModelIndex index =
+      createIndex(instId, (int)ColumnType::Breakpoint, (void *)instructionRow);
+  emit dataChanged(index, index);
+}
+
+void DisassemblyModel::onBreakpointHit(Dbg::Breakpoint bp) {
+  // FIXME: Probably not needed
+  beginResetModel();
+  endResetModel();
+
+  int labelId, instId;
+  std::tie(labelId, instId) = instIdAtAddress(_script, bp.address);
+  if (labelId < 0 || instId < 0) {
+    qWarning() << "Breakpoint hit at unknown address" << bp.address;
+    return;
+  }
+  auto instructionRow = &_labelRows[labelId].children.data()[instId];
   QModelIndex index =
       createIndex(instId, (int)ColumnType::Breakpoint, (void *)instructionRow);
   emit dataChanged(index, index);

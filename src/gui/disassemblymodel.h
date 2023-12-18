@@ -54,6 +54,7 @@ class DisassemblyModel : public QAbstractItemModel {
   void onVarNameChanged(VariableRefType type, int var, const QString& name);
   void onAllVarsChanged();
   void onBreakpointChanged(int fileId, SCXOffset address, bool enabled);
+  void onBreakpointHit(Dbg::Breakpoint);
 
  private:
   const SCXFile* _script;
