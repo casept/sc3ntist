@@ -49,18 +49,24 @@ Connection::Connection(const char* addr, uint16_t port)
 }
 
 void Connection::SendCmd(const SC3Debug::Request& cmd) {
+  if (!cmd.IsInitialized()) {
+    qCCritical(debugProtocol)
+        << "Attempt to send uninitialized message, dropping!";
+    return;
+  }
   qCDebug(debugProtocol) << "Writing debug protocol message"
                          << cmd.DebugString().c_str();
   Buf buf{};
   size_t size = cmd.ByteSizeLong();
-  buf.reserve(4 + size);
+  buf.resize(size + 4);
   google::protobuf::io::ArrayOutputStream* arr =
-      new google::protobuf::io::ArrayOutputStream(buf.data(), 4 + size);
+      new google::protobuf::io::ArrayOutputStream(buf.data(), buf.size());
   google::protobuf::io::CodedOutputStream* coded =
       new google::protobuf::io::CodedOutputStream(arr);
   coded->WriteLittleEndian32(size);
   cmd.SerializeToCodedStream(coded);
 
+  qCDebug(debugProtocol) << "Wrote" << buf.size() << "bytes";
   asio::write(sock, asio::buffer(buf));
 
   delete coded;
@@ -83,10 +89,11 @@ std::optional<SC3Debug::Reply> Connection::RecvReply() {
 
   // Check whether we have enough data to determine size
   std::optional<size_t> size{};
-  if (coded->BytesUntilTotalBytesLimit() >= 4) {
+  if (recvBuf.size() >= 4) {
     uint32_t size32;
     coded->ReadLittleEndian32(&size32);
     size.emplace(static_cast<size_t>(size32));
+    coded->SetTotalBytesLimit(size.value() + 4);
   }
 
   // Check whether message is complete
@@ -97,8 +104,8 @@ std::optional<SC3Debug::Reply> Connection::RecvReply() {
     // Have to create a new vector and swap, as bytes are in front
     Buf newBuf{};
     const auto left = coded->BytesUntilTotalBytesLimit();
-    newBuf.reserve(left);
-    std::copy(recvBuf.begin() + (recvBuf.size() - left), recvBuf.end(),
+    newBuf.resize(left);
+    std::copy(recvBuf.begin() + recvBuf.size() - left, recvBuf.end(),
               newBuf.begin());
     recvBuf.swap(newBuf);
     delete coded;
