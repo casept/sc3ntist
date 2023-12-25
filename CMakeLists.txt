@@ -35,9 +35,7 @@ find_package(
 add_executable(
   sc3ntist
   "src/gui/analysis.cpp"
-  "src/gui/debugger.cpp"
   "src/gui/debuggerapplication.cpp"
-  "src/gui/debugprotocol_debugger.cpp"
   "src/gui/debuggerconnectiondialog.cpp"
   "src/gui/disassemblyitemdelegate.cpp"
   "src/gui/disassemblymodel.cpp"
@@ -80,19 +78,34 @@ find_package(
   Qt5
   COMPONENTS Core Gui Widgets Sql
   REQUIRED)
-add_subdirectory("vendor/bitsery" EXCLUDE_FROM_ALL)
 # asio doesn't ship a CMakeLists.txt, so we have to create a target ourselves
 add_library(asio INTERFACE)
 target_include_directories(asio INTERFACE "vendor/asio/asio/include")
 
+# Protobuf for debugger protocol
+find_package(Protobuf REQUIRED)
+add_library(
+  debugger STATIC
+  "src/debugger/debugprotocol.proto" "src/debugger/debugprotocol_debugger.cpp"
+  "src/debugger/debugger.cpp" "src/debugger/debugger.h")
+target_include_directories(
+  debugger
+  PUBLIC "${CMAKE_BINARY_DIR}/src/debugger/" "src/debugger/"
+  PRIVATE "${CMAKE_BINARY_DIR}")
+target_link_libraries(debugger PUBLIC asio protobuf::libprotobuf Qt5::Core)
+# protobuf is a bit broken, see
+# https://github.com/protocolbuffers/protobuf/issues/14500
+target_link_options(debugger PUBLIC "-Wl,--copy-dt-needed-entries")
+protobuf_generate(TARGET debugger LANGUAGE cpp)
+
 target_link_libraries(
   sc3ntist
   PRIVATE parser
+          debugger
           Qt5::Core
           Qt5::Widgets
           Qt5::Gui
           Qt5::Sql
-          bitsery
           asio)
 
 # Hack to force cmake to add system (libstdc++) header path to

@@ -1,7 +1,7 @@
 #include "disassemblymodel.h"
 #include "disassemblyview.h"
 #include "disassemblyitemdelegate.h"
-#include "gui/debugger.h"
+#include "debugger.h"
 #include "project.h"
 #include "debuggerapplication.h"
 #include <QAction>

@@ -1,13 +1,13 @@
 #include "debugger.h"
 #include "debugprotocol_debugger.h"
-#include "debugprotocol.h"
+#include "debugprotocol.pb.h"
 
 #include <cstdint>
 #include <stdexcept>
 #include <mutex>
 #include <chrono>
 
-#include <QDebug>
+#include <QtDebug>
 #include <QLoggingCategory>
 
 Q_LOGGING_CATEGORY(debugger, "sc3ntist.debugger")
@@ -26,12 +26,10 @@ Debugger::Debugger(const char* host, uint16_t port)
       tid2ScriptBuf({}),
       breakpoints({}),
       newlyHit({}) {
-  // Sync up with the threads running currently
-  const Cmd::Cmd cmd = {
-      .type = Cmd::Type::GetThreads,
-      .cmd = Cmd::GetThreads{},
-  };
-  conn.SendCmd(cmd);
+  // Initial state sync
+  SC3Debug::Request r = SC3Debug::Request();
+  r.set_type(SC3Debug::REQUEST_TYPE_GET_STATE);
+  conn.SendCmd(r);
 
   // We expect the target to respond in a reasonable timeframe
   auto start = std::chrono::steady_clock::now();
@@ -40,13 +38,14 @@ Debugger::Debugger(const char* host, uint16_t port)
     Update();
     auto now = std::chrono::steady_clock::now();
     if ((now - start) > std::chrono::seconds{5}) {
-      throw std::runtime_error(
-          "Target did not send initial thread list in time");
+      throw std::runtime_error("Target did not send initial state in time");
     }
   }
 }
 
 void Debugger::setBreakpoint(const char* scriptbufName, uint32_t addr) {
+  throw std::runtime_error("Not implemented");
+  /*
   std::lock_guard<std::mutex> lck(mtx);
 
   // Multiple threads may be executing the same script
@@ -61,9 +60,12 @@ void Debugger::setBreakpoint(const char* scriptbufName, uint32_t addr) {
       .address = addr,
   };
   breakpoints.push_back(bp);
+  */
 }
 
 void Debugger::unsetBreakpoint(const char* scriptbufName, uint32_t addr) {
+  throw std::runtime_error("Not implemented");
+  /*
   std::lock_guard<std::mutex> lck(mtx);
 
   // Multiple threads may be executing the same script
@@ -82,6 +84,7 @@ void Debugger::unsetBreakpoint(const char* scriptbufName, uint32_t addr) {
   breakpoints.erase(
       std::remove_if(breakpoints.begin(), breakpoints.end(), pred),
       breakpoints.end());
+  */
 }
 
 void Debugger::Update() {
@@ -93,38 +96,25 @@ void Debugger::Update() {
       return;
     }
 
-    switch (reply->type) {
-      using Rt = Reply::Type;
-      case Rt::GetThreads: {
-        scriptBuf2Tids = std::get<Reply::GetThreads>(reply->reply).threads;
-        tid2ScriptBuf.clear();
-        for (const auto& entry : scriptBuf2Tids) {
-          for (const auto tid : entry.second) {
-            tid2ScriptBuf[tid] = entry.first;
-          }
-        }
-        break;
-      };
-      case Rt::BreakpointHit: {
-        const auto hit = std::get<Reply::BreakpointHit>(reply->reply);
-        for (const Breakpoint& bp : breakpoints) {
-          if (bp.address == hit.addr &&
-              bp.scriptBuffer == tid2ScriptBuf.at(hit.tid)) {
-            newlyHit.push_back(bp);
-          }
-        }
+    switch (reply->type()) {
+      case SC3Debug::ReplyType::REPLY_TYPE_VM_STATE: {
+        // Using logging category here causes a mysterious linker error
+        qDebug() << "Got VM state reply";
+        // TODO: Process
         break;
       };
       default: {
-        throw std::runtime_error(
-            "Debugger::Update(): Got unimplemented reply type " +
-            std::to_string(static_cast<uint8_t>(reply->type)));
+        // Using logging category here causes a mysterious linker error
+        qDebug() << "Got unimplemented reply type" << reply->type();
+        break;
       };
     }
   }
 }
 
 void Debugger::continueExecution(Breakpoint bp) {
+  throw std::runtime_error("Not implemented");
+  /*
   std::lock_guard<std::mutex> lck(mtx);
 
   const auto tid = scriptBuf2Tids.at(bp.scriptBuffer).front();
@@ -133,5 +123,6 @@ void Debugger::continueExecution(Breakpoint bp) {
       .cmd = Cmd::Continue{.tid = tid},
   };
   conn.SendCmd(cmd);
+  */
 }
 }  // namespace Dbg

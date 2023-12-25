@@ -8,8 +8,8 @@
  * for non-volatile project state.
  */
 
+#include "debugprotocol.pb.h"
 #include "debugprotocol_debugger.h"
-#include "debugprotocol.h"
 
 #include <cstdint>
 #include <vector>
@@ -60,9 +60,9 @@ class Debugger : public QObject {
   /// Needed because users set e.g. breakpoints on a per-script basis,
   /// but the target can be much simpler if the protocol only deals with thread
   /// IDs.
-  std::map<std::string, std::vector<Proto::ThreadID>> scriptBuf2Tids;
+  std::map<std::string, std::vector<uint8_t>> scriptBuf2Tids;
   /// More optimal for some queries
-  std::map<Proto::ThreadID, std::string> tid2ScriptBuf;
+  std::map<uint8_t, std::string> tid2ScriptBuf;
   std::vector<Breakpoint> breakpoints;
   std::vector<Breakpoint> newlyHit;
 };

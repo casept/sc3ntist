@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-#include "gui/debugger.h"
+#include "debugger.h"
 #include "ui_mainwindow.h"
 #include "debuggerapplication.h"
 #include "textdump.h"

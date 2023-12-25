@@ -7,7 +7,7 @@
 #include <memory>
 #include <optional>
 
-#include "gui/debugger.h"
+#include "debugger.h"
 #include "parser/SCXTypes.h"
 
 class DisassemblyView : public QTreeView {
