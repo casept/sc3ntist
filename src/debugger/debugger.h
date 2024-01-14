@@ -19,6 +19,7 @@
 #include <mutex>
 #include <QObject>
 #include <QLoggingCategory>
+#include <QTimer>
 
 namespace Dbg {
 
@@ -52,6 +53,11 @@ class Debugger : public QObject {
  signals:
   void breakpointHit(Breakpoint);
 
+ private slots:
+  void Timeout();
+  void ErrorEncountered(QString msg);
+  void GotReply(SC3Debug::Reply reply);
+
  private:
   /// Because multiple widgets may access something at the same time
   std::mutex mtx;
@@ -65,5 +71,6 @@ class Debugger : public QObject {
   std::map<uint8_t, std::string> tid2ScriptBuf;
   std::vector<Breakpoint> breakpoints;
   std::vector<Breakpoint> newlyHit;
+  QTimer* initialStateTimeout;
 };
 }  // namespace Dbg

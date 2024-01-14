@@ -2,11 +2,11 @@
 #include "debugprotocol.pb.h"
 
 #include <algorithm>
-#include <asio.hpp>
 #include <google/protobuf/io/coded_stream.h>
 #include <QtEndian>
 #include <QDebug>
 #include <QLoggingCategory>
+#include <QTcpSocket>
 
 // Part of the ugly timeout hack
 #if defined(WIN32) || defined(_WIN32) || \
@@ -23,29 +23,17 @@ extern "C" {
 #include <vector>
 #include <optional>
 
-using asio::ip::tcp;
 using Buf = std::vector<uint8_t>;
 
 Q_LOGGING_CATEGORY(debugProtocol, "sc3ntist.debugProtocol")
 
 namespace Dbg::Proto::Impl {
-Connection::Connection(const char* addr, uint16_t port)
-    : ctx({}), sock(ctx), recvBuf({}) {
-  tcp::resolver resolv(ctx);
-  auto endpoints = resolv.resolve(addr, std::to_string(port));
-  sock = tcp::socket(ctx);
-  // This assumes an asio implementation detail by dealing with raw underlying
-  // OS sockets, because apparently it's acceptable for "mature" C++ libraries
-  // to lack basic features.
-  const int timeoutMs = 1000;
-  ::setsockopt(sock.native_handle(), SOL_SOCKET, SO_RCVTIMEO,
-               (const char*)&timeoutMs, sizeof timeoutMs);
-  ::setsockopt(sock.native_handle(), SOL_SOCKET, SO_SNDTIMEO,
-               (const char*)&timeoutMs, sizeof timeoutMs);
-  asio::connect(sock, endpoints);
-  // Reduce latency
-  asio::socket_base::send_buffer_size bufsize(32);
-  sock.set_option(bufsize);
+Connection::Connection(const char* addr, uint16_t port) : recvBuf({}) {
+  sock = new QTcpSocket(this);
+  connect(sock, &QTcpSocket::errorOccurred, this, &Connection::SocketError);
+  connect(sock, &QTcpSocket::readyRead, this, &Connection::DataReceived);
+  sock->connectToHost(addr, port);
+  sock->setSocketOption(QAbstractSocket::SocketOption::LowDelayOption, true);
 }
 
 void Connection::SendCmd(const SC3Debug::Request& cmd) {
@@ -67,18 +55,25 @@ void Connection::SendCmd(const SC3Debug::Request& cmd) {
   cmd.SerializeToCodedStream(coded);
 
   qCDebug(debugProtocol) << "Wrote" << buf.size() << "bytes";
-  asio::write(sock, asio::buffer(buf));
+  QByteArray baBuf{reinterpret_cast<char*>(buf.data()),
+                   static_cast<int>(buf.size())};
+  sock->write(baBuf);
 
   delete coded;
   delete arr;
 }
 
-std::optional<SC3Debug::Reply> Connection::RecvReply() {
+void Connection::DataReceived() {
   // peek is discouraged, so read all bytes into our buffer first
-  const size_t avail = sock.available();
+  const size_t avail = sock->bytesAvailable();
   if (avail > 0) {
+    auto initialSize = recvBuf.size();
     recvBuf.resize(recvBuf.size() + avail);
-    sock.read_some(asio::buffer(recvBuf));
+    auto newData = sock->readAll();
+    // TODO: Solve elegantly
+    for (size_t i = 0; i < newData.size(); i++) {
+      recvBuf.at(initialSize + i) = newData.at(i);
+    }
   }
 
   google::protobuf::io::ArrayInputStream* arr =
@@ -108,13 +103,16 @@ std::optional<SC3Debug::Reply> Connection::RecvReply() {
     std::copy(recvBuf.begin() + recvBuf.size() - left, recvBuf.end(),
               newBuf.begin());
     recvBuf.swap(newBuf);
-    delete coded;
-    delete arr;
-    return {r};
+    emit GotReply(r);
   }
 
   delete coded;
   delete arr;
-  return {};
+}
+
+void Connection::SocketError(QAbstractSocket::SocketError err) {
+  QString msg = "Encountered socket error: " + sock->errorString();
+  qCWarning(debugProtocol) << msg;
+  emit ErrorEncountered(msg);
 }
 }  // namespace Dbg::Proto::Impl

@@ -76,23 +76,20 @@ target_include_directories(sc3ntist PRIVATE "src/")
 
 find_package(
   Qt5
-  COMPONENTS Core Gui Widgets Sql
+  COMPONENTS Core Gui Widgets Sql Network
   REQUIRED)
-# asio doesn't ship a CMakeLists.txt, so we have to create a target ourselves
-add_library(asio INTERFACE)
-target_include_directories(asio INTERFACE "vendor/asio/asio/include")
 
 # Protobuf for debugger protocol
 find_package(Protobuf REQUIRED)
 add_library(
   debugger STATIC
-  "src/debugger/debugprotocol.proto" "src/debugger/debugprotocol_debugger.cpp"
+  "src/debugger/debugprotocol.proto" "src/debugger/debugprotocol_debugger.cpp" "src/debugger/debugprotocol_debugger.h"
   "src/debugger/debugger.cpp" "src/debugger/debugger.h")
 target_include_directories(
   debugger
   PUBLIC "${CMAKE_BINARY_DIR}/src/debugger/" "src/debugger/"
   PRIVATE "${CMAKE_BINARY_DIR}")
-target_link_libraries(debugger PUBLIC asio protobuf::libprotobuf Qt5::Core)
+target_link_libraries(debugger PUBLIC protobuf::libprotobuf Qt5::Core Qt5::Network)
 # protobuf is a bit broken, see
 # https://github.com/protocolbuffers/protobuf/issues/14500
 target_link_options(debugger PUBLIC "-Wl,--copy-dt-needed-entries")
@@ -106,7 +103,7 @@ target_link_libraries(
           Qt5::Widgets
           Qt5::Gui
           Qt5::Sql
-          asio)
+  )
 
 # Hack to force cmake to add system (libstdc++) header path to
 # compile_commands.json. This also adds a lot of junk, but as long as it doesn't
