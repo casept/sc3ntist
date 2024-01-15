@@ -1,4 +1,4 @@
-#include "debugprotocol_debugger.h"
+#include "connection.h"
 #include "debugprotocol.pb.h"
 
 #include <algorithm>

@@ -9,7 +9,7 @@
  */
 
 #include "debugprotocol.pb.h"
-#include "debugprotocol_debugger.h"
+#include "connection.h"
 
 #include <cstdint>
 #include <vector>

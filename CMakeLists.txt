@@ -83,8 +83,13 @@ find_package(
 find_package(Protobuf REQUIRED)
 add_library(
   debugger STATIC
-  "src/debugger/debugprotocol.proto" "src/debugger/debugprotocol_debugger.cpp" "src/debugger/debugprotocol_debugger.h"
-  "src/debugger/debugger.cpp" "src/debugger/debugger.h")
+  "src/debugger/debugprotocol.proto"
+  "src/debugger/connection.cpp"
+  "src/debugger/connection.h"
+  "src/debugger/debugger.cpp"
+  "src/debugger/debugger.h"
+)
+
 target_include_directories(
   debugger
   PUBLIC "${CMAKE_BINARY_DIR}/src/debugger/" "src/debugger/"
